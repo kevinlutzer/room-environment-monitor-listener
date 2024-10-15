@@ -1,16 +1,38 @@
 use std::{process, time::Duration};
 
+use dotenv::dotenv;
+use envconfig::Envconfig;
 use futures::{executor::block_on, stream::StreamExt};
 use paho_mqtt::{self as mqtt, MQTT_VERSION_5};
+use tracing::{error, info};
+
+// Definition of the configuration for the application.
+#[derive(Envconfig)]
+pub struct Config {
+    #[envconfig(from = "MQTT_HOST")]
+    pub mqtt_host: String,
+
+    #[envconfig(from = "MQTT_PORT")]
+    pub mqtt_port: u16,
+}
 
 // The topics to which we subscribe.
 const TOPICS: &[&str] = &["rem/data", "rem/status"];
 const QOS: &[i32] = &[1, 1];
 
 fn main() {
-    let host = "mqtt://192.168.4.159:1883";
+    // Load the configuration from the environment.
+    dotenv().ok();
 
-    println!("Connecting to the MQTT server at '{}'...", host);
+    // Setup tracing subscriber
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::INFO)
+        .init();
+
+    let config = Config::init_from_env().unwrap();
+    let host = format!("mqtt://{}:{}", config.mqtt_host, config.mqtt_port);
+
+    info!("Connecting to the MQTT server at '{}'...", host);
 
     // Create the client. Use an ID for a persistent session.
     // A real system should try harder to use a unique ID.
@@ -21,7 +43,7 @@ fn main() {
 
     // Create the client connection
     let mut cli = mqtt::AsyncClient::new(create_opts).unwrap_or_else(|e| {
-        println!("Error creating the client: {:?}", e);
+        error!("Error creating the client: {:?}", e);
         process::exit(1);
     });
 
@@ -49,13 +71,13 @@ fn main() {
         // Make the connection to the broker
         cli.connect(conn_opts).await?;
 
-        println!("Subscribing to topics: {:?}", TOPICS);
+        info!("Subscribing to topics: {:?}", TOPICS);
         let sub_opts = vec![mqtt::SubscribeOptions::with_retain_as_published(); TOPICS.len()];
         cli.subscribe_many_with_options(TOPICS, QOS, &sub_opts, None)
             .await?;
 
         // Just loop on incoming messages.
-        println!("Waiting for messages...");
+        info!("Waiting for messages...");
 
         // Note that we're not providing a way to cleanly shut down and
         // disconnect. Therefore, when you kill this app (with a ^C or
@@ -65,14 +87,14 @@ fn main() {
         while let Some(msg_opt) = strm.next().await {
             if let Some(msg) = msg_opt {
                 if msg.retained() {
-                    print!("(R) ");
+                    info!("(R) ");
                 }
-                println!("{}", msg);
+                info!("{}", msg);
             } else {
                 // A "None" means we were disconnected. Try to reconnect...
-                println!("Lost connection. Attempting reconnect.");
+                info!("Lost connection. Attempting reconnect.");
                 while let Err(err) = cli.reconnect().await {
-                    println!("Error reconnecting: {}", err);
+                    info!("Error reconnecting: {}", err);
                     // For tokio use: tokio::time::delay_for()
                     async_std::task::sleep(Duration::from_millis(1000)).await;
                 }
