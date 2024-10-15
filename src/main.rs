@@ -1,20 +1,15 @@
-use std::{process, time::Duration};
+pub mod schema;
+pub mod settings;
 
+use diesel::{insert_into, prelude::*};
 use dotenv::dotenv;
 use envconfig::Envconfig;
 use futures::{executor::block_on, stream::StreamExt};
 use paho_mqtt::{self as mqtt, MQTT_VERSION_5};
+use schema::status::dsl::*;
+use settings::Settings;
+use std::{process, time::Duration};
 use tracing::{error, info};
-
-// Definition of the configuration for the application.
-#[derive(Envconfig)]
-pub struct Config {
-    #[envconfig(from = "MQTT_HOST")]
-    pub mqtt_host: String,
-
-    #[envconfig(from = "MQTT_PORT")]
-    pub mqtt_port: u16,
-}
 
 // The topics to which we subscribe.
 const TOPICS: &[&str] = &["rem/data", "rem/status"];
@@ -29,7 +24,7 @@ fn main() {
         .with_max_level(tracing::Level::INFO)
         .init();
 
-    let config = Config::init_from_env().unwrap();
+    let config = Settings::init_from_env().unwrap();
     let host = format!("mqtt://{}:{}", config.mqtt_host, config.mqtt_port);
 
     info!("Connecting to the MQTT server at '{}'...", host);
@@ -46,6 +41,15 @@ fn main() {
         error!("Error creating the client: {:?}", e);
         process::exit(1);
     });
+
+    // Create the postgres connection
+    let mut conn = PgConnection::establish(config.database_url.as_str())
+        .expect("Error connecting to the database");
+
+    insert_into(status)
+        .values((id.eq("7901e5fa-a92b-4ea2-aa0f-64d1d6bfb1b4"), deviceId.eq("REM-1"), uptime.eq(20)))
+        .execute(&mut conn)
+        .unwrap();
 
     if let Err(err) = block_on(async {
         // Get message stream before connecting.
