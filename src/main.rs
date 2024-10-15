@@ -6,7 +6,8 @@ use dotenv::dotenv;
 use envconfig::Envconfig;
 use futures::{executor::block_on, stream::StreamExt};
 use paho_mqtt::{self as mqtt, MQTT_VERSION_5};
-use schema::status::dsl::*;
+use schema::rem_status::dsl::*;
+use serde::Deserialize;
 use settings::Settings;
 use std::{process, time::Duration};
 use tracing::{error, info};
@@ -14,6 +15,15 @@ use tracing::{error, info};
 // The topics to which we subscribe.
 const TOPICS: &[&str] = &["rem/data", "rem/status"];
 const QOS: &[i32] = &[1, 1];
+
+#[derive(Deserialize)]
+struct REMStatus {
+    id: String,
+    #[serde(rename = "deviceId")]
+    device_id: String,
+    #[serde(rename = "uptime")]
+    up_time: i32,
+}
 
 fn main() {
     // Load the configuration from the environment.
@@ -45,11 +55,6 @@ fn main() {
     // Create the postgres connection
     let mut conn = PgConnection::establish(config.database_url.as_str())
         .expect("Error connecting to the database");
-
-    insert_into(status)
-        .values((id.eq("7901e5fa-a92b-4ea2-aa0f-64d1d6bfb1b4"), deviceId.eq("REM-1"), uptime.eq(20)))
-        .execute(&mut conn)
-        .unwrap();
 
     if let Err(err) = block_on(async {
         // Get message stream before connecting.
@@ -94,6 +99,17 @@ fn main() {
                     info!("(R) ");
                 }
                 info!("{}", msg);
+                
+                // Handle the message
+                if msg.topic() == "rem/status" {
+                    let status: REMStatus = serde_json::from_slice(msg.payload()).unwrap();
+                    info!("Device ID: {}, Uptime: {}", status.device_id, status.up_time);
+
+                    insert_into(rem_status)
+                        .values((id.eq(status.id), device_id.eq(status.device_id), up_time.eq(status.up_time)))
+                        .execute(&mut conn)
+                        .unwrap();
+                }
             } else {
                 // A "None" means we were disconnected. Try to reconnect...
                 info!("Lost connection. Attempting reconnect.");
