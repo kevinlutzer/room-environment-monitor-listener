@@ -12,9 +12,7 @@ use std::{process, sync::Arc};
 use tokio::sync::Mutex;
 use tracing::{error, info};
 
-use diesel::{insert_into, prelude::*};
-
-// use diesel::pg::PgConnection;
+use diesel::prelude::*;
 
 #[tokio::main]
 async fn main() {
@@ -50,5 +48,5 @@ async fn main() {
     );
 
     // Start routine to handle mqtt messages from subscribed topics
-    let _ = tokio::spawn(mqtt_proc(cli, conn, config)).await.unwrap();
+    let _ = tokio::spawn(mqtt_proc(cli, conn)).await.unwrap();
 }
