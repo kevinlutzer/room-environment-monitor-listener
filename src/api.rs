@@ -4,7 +4,7 @@ use std::{
 };
 
 use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::get};
-use diesel::PgConnection;
+use diesel::{sql_query, PgConnection, RunQueryDsl};
 use paho_mqtt::AsyncClient;
 use tokio::sync::Mutex;
 use tracing::{error, info};
@@ -23,12 +23,14 @@ async fn default_handler() -> impl IntoResponse {
 
 async fn healthcheck_handler(State(app_state): State<AppState>) -> (StatusCode, &'static str) {
     let mqtt_client_lock = app_state.mqtt_client.lock().await;
-    let db_lock = app_state.db.lock().await;
+    let mut db_lock = app_state.db.lock().await;
 
     // Check that the MQTT client is connected
     let err_msg = if !mqtt_client_lock.is_connected() {
         "MQTT client is not connected to the broker"
     // Verify that we can query the database
+    } else if sql_query("SELECT 1").execute(&mut *db_lock).is_err() {
+        "Database couldn't be connected too"
     } else {
         ""
     };
@@ -40,7 +42,7 @@ async fn healthcheck_handler(State(app_state): State<AppState>) -> (StatusCode, 
     //     ""
     // };
 
-    if err_msg != "" {
+    if !err_msg.is_empty() {
         error!(err_msg);
         return (StatusCode::INTERNAL_SERVER_ERROR, err_msg);
     }

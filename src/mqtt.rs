@@ -102,7 +102,7 @@ pub async fn mqtt_proc(
             // A "None" means we were disconnected. Try to reconnect...
             info!("Lost connection. Attempting reconnect.");
 
-            let mut cli_lock = cli.lock().await;
+            let cli_lock = cli.lock().await;
             while let Err(err) = &cli_lock.reconnect().await {
                 info!("Error reconnecting: {}", err);
                 // For tokio use: tokio::time::delay_for()
