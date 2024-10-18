@@ -3,18 +3,18 @@ pub mod mqtt;
 pub mod schema;
 pub mod settings;
 
+use api::server_proc;
+use mqtt::mqtt_proc;
+use settings::Settings;
+
 use dotenv::dotenv;
 use envconfig::Envconfig;
-use mqtt::mqtt_proc;
 use paho_mqtt::{AsyncClient, CreateOptionsBuilder};
-use settings::Settings;
 use std::{process, sync::Arc};
-use tokio::sync::Mutex;
+use tokio::{join, sync::Mutex};
 use tracing::{error, info};
 
-use diesel::{insert_into, prelude::*};
-
-// use diesel::pg::PgConnection;
+use diesel::prelude::*;
 
 #[tokio::main]
 async fn main() {
@@ -39,16 +39,21 @@ async fn main() {
         .finalize();
 
     // Create the client connection
-    let cli = Mutex::new(AsyncClient::new(create_opts).unwrap_or_else(|e| {
-        error!("Error creating the client: {:?}", e);
-        process::exit(1);
-    }));
+    let mqtt_client = Arc::new(Mutex::new(AsyncClient::new(create_opts).unwrap_or_else(
+        |e| {
+            error!("Error creating the client: {:?}", e);
+            process::exit(1);
+        },
+    )));
 
     // Create the postgres connection
-    let conn = Mutex::new(
+    let db = Arc::new(Mutex::new(
         PgConnection::establish(&config.database_url).expect("Error connecting to the database"),
-    );
+    ));
 
     // Start routine to handle mqtt messages from subscribed topics
-    let _ = tokio::spawn(mqtt_proc(cli, conn, config)).await.unwrap();
+    join!(
+        tokio::spawn(mqtt_proc(mqtt_client.clone(), db.clone())),
+        tokio::spawn(server_proc(config, mqtt_client, db))
+    );
 }
