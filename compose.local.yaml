@@ -1,0 +1,15 @@
+services:
+  web:
+    build: .
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgresdb
+  postgresdb:
+    image: "postgres"
+    environment:
+      - POSTGRES_PASSWORD=mysecretpassword
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=postgres
+    ports:
+      - "5432:5432"
