@@ -1,15 +1,17 @@
-use std::sync::Arc;
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
+
 use tokio::sync::Mutex;
 use tracing::info;
 
-use diesel::pg::PgConnection;
-use diesel::{insert_into, prelude::*};
+use diesel::{insert_into, pg::PgConnection, prelude::*};
+
 use futures::stream::StreamExt;
+
 use paho_mqtt::{
     self as mqtt, properties, AsyncClient, ConnectOptionsBuilder, PropertyCode, SubscribeOptions,
     MQTT_VERSION_5,
 };
+
 use serde::Deserialize;
 
 use crate::schema::rem_status::dsl::*;
@@ -36,13 +38,6 @@ pub async fn mqtt_proc(
     // Get message stream before connecting.
     let strm = &mut cli_lock.get_stream(25);
 
-    // Define the set of options for the connection
-    let lwt = paho_mqtt::Message::new(
-        "test/lwt",
-        "[LWT] Async subscriber v5 lost connection",
-        paho_mqtt::QOS_1,
-    );
-
     // Connect with MQTT v5 and a persistent server session (no clean start).
     // For a persistent v5 session, we must set the Session Expiry Interval
     // on the server. Here we set that requests will persist for an hour
@@ -50,7 +45,6 @@ pub async fn mqtt_proc(
     let conn_opts = ConnectOptionsBuilder::with_mqtt_version(MQTT_VERSION_5)
         .clean_start(false)
         .properties(properties![PropertyCode::SessionExpiryInterval => 3600])
-        .will_message(lwt)
         .finalize();
 
     // Make the connection to the broker
@@ -64,21 +58,15 @@ pub async fn mqtt_proc(
 
     drop(cli_lock);
 
-    // Just loop on incoming messages.
-    info!("Waiting for messages...");
 
     // Note that we're not providing a way to cleanly shut down and
     // disconnect. Therefore, when you kill this app (with a ^C or
-    // whatever) the server will get an unexpected drop and then
+    // whatever) the broker will get an unexpected drop and then
     // should emit the LWT message.
-
+    info!("Waiting for messages...");
     while let Some(msg_opt) = strm.next().await {
         if let Some(msg) = msg_opt {
-            if msg.retained() {
-                info!("(R) ");
-            }
-            info!("{}", msg);
-
+            // Lock on the Database
             let mut mut_conn = conn.lock().await;
 
             // Handle the message

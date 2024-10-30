@@ -21,36 +21,40 @@ async fn default_handler() -> impl IntoResponse {
     (StatusCode::NOT_FOUND, "Not Found")
 }
 
+/// Healthcheck handler
+///
+/// This handler checks the health of the application by verifying that the MQTT client is connected
+/// to the broker and that the database can be queried.
 async fn healthcheck_handler(State(app_state): State<AppState>) -> (StatusCode, &'static str) {
     let mqtt_client_lock = app_state.mqtt_client.lock().await;
     let mut db_lock = app_state.db.lock().await;
 
+    let mut err_msg = "";
+
     // Check that the MQTT client is connected
-    let err_msg = if !mqtt_client_lock.is_connected() {
-        "MQTT client is not connected to the broker"
+    if !mqtt_client_lock.is_connected() {
+        err_msg = "MQTT client is not connected to the broker"
+
     // Verify that we can query the database
     } else if sql_query("SELECT 1").execute(&mut *db_lock).is_err() {
-        "Database couldn't be connected too"
-    } else {
-        ""
-    };
+        err_msg = "Database couldn't be connected too"
+    }
 
-    // else if db_lock.batch_execute("SELECT 1").is_err() {
-    //     "Database couldn't be connected too"
-    // }
-    // else {
-    //     ""
-    // };
-
+    // If we get an error message, we return it as an internal error
     if !err_msg.is_empty() {
         error!(err_msg);
         return (StatusCode::INTERNAL_SERVER_ERROR, err_msg);
     }
 
+    // Success if db query returns a result and the MQTT client is connected.
     info!("Healthcheck passed");
     (StatusCode::OK, "Ok")
 }
 
+/// Server process
+///
+/// This function creates the axum server and binds it to a TCP socket. This function
+/// is async and blocking.
 pub async fn server_proc(
     config: Arc<Settings>,
     mqtt_client: Arc<Mutex<AsyncClient>>,
