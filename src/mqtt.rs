@@ -6,7 +6,7 @@ use tracing::info;
 use diesel::{insert_into, pg::PgConnection, prelude::*};
 
 use futures::stream::StreamExt;
-        
+
 use paho_mqtt::{
     self as mqtt, properties, AsyncClient, ConnectOptionsBuilder, PropertyCode, SubscribeOptions,
     MQTT_VERSION_5,
@@ -65,7 +65,6 @@ pub async fn mqtt_proc(
         .await?;
 
     drop(cli_lock);
-
 
     // Note that we're not providing a way to cleanly shut down and
     // disconnect. Therefore, when you kill this app (with a ^C or
