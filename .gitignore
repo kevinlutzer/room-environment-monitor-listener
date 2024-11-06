@@ -26,3 +26,4 @@ Cargo.lock
 
 # 
 .env
+mosquitto.conf

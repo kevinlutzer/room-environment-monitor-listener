@@ -4,3 +4,4 @@ diesel.toml
 .env
 target/
 migrations/
+mosquitto.conf

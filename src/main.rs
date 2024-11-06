@@ -52,7 +52,7 @@ async fn main() {
     ));
 
     // Start routine to handle mqtt messages from subscribed topics
-    join!(
+    let _ = join!(
         tokio::spawn(mqtt_proc(mqtt_client.clone(), db.clone())),
         tokio::spawn(server_proc(config, mqtt_client, db))
     );

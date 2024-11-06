@@ -1,10 +1,31 @@
 services:
-  web:
+  room-environment-monitor-listener:
     build: .
     ports:
       - "8080:8080"
     depends_on:
       - postgresdb
+      - mosquitto
+    environment:
+      - MQTT_HOST=mosquitto
+      - MQTT_PORT=1883
+      - HOST=0.0.0.0
+      - PORT=8080
+      - DATABASE_URL=postgres://postgres:mysecretpassword@postgresdb:5432/postgres
+    networks:
+      - backend
+
+  mosquitto:
+    image: "eclipse-mosquitto:latest"
+    volumes:
+      - type: bind
+        source: ./mosquitto.conf
+        target: /mosquitto/config/mosquitto.conf
+    ports:
+      - "1883:1883"
+    networks:
+      - backend
+
   postgresdb:
     image: "postgres"
     environment:
@@ -13,3 +34,9 @@ services:
       - POSTGRES_DB=postgres
     ports:
       - "5432:5432"
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge
