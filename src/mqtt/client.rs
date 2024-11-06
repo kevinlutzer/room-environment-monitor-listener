@@ -25,6 +25,21 @@ struct REMStatus {
     up_time: i32,
 }
 
+#[derive(Deserialize)]
+struct REMData {
+    id: String,
+
+    #[serde(rename = "deviceId")]
+    device_id: String,
+
+    pm2_5: f32,
+    pm1_0: f32,
+    pm10: f32,
+    temperature: f32,
+    humidity: f32,
+    pressure: f32,
+}
+
 // The topics to which we subscribe.
 const TOPICS: &[&str] = &["rem/data", "rem/status"];
 const QOS: &[i32] = &[1, 1];
