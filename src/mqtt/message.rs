@@ -1,5 +1,6 @@
 use serde::Deserialize;
 
+/// REMStatus is the structure of the status that we receive from the REM device.
 #[derive(Deserialize)]
 pub struct REMStatus {
     pub id: String,
@@ -9,6 +10,7 @@ pub struct REMStatus {
     pub up_time: i32,
 }
 
+/// REMData is the structure of the data that we receive from the REM device.
 #[derive(Deserialize)]
 pub struct REMData {
     pub id: String,

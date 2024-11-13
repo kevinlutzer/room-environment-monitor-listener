@@ -1,3 +1,3 @@
-pub mod handlers;
 pub mod client;
+pub mod handler;
 pub mod message;

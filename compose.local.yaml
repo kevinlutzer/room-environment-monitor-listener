@@ -1,3 +1,6 @@
+include: 
+  - infra.local.yaml
+
 services:
   room-environment-monitor-listener:
     build: .
@@ -14,29 +17,3 @@ services:
       - DATABASE_URL=postgres://postgres:mysecretpassword@postgresdb:5432/postgres
     networks:
       - backend
-
-  mosquitto:
-    image: "eclipse-mosquitto:latest"
-    volumes:
-      - type: bind
-        source: ./mosquitto.conf
-        target: /mosquitto/config/mosquitto.conf
-    ports:
-      - "1883:1883"
-    networks:
-      - backend
-
-  postgresdb:
-    image: "postgres"
-    environment:
-      - POSTGRES_PASSWORD=mysecretpassword
-      - POSTGRES_USER=postgres
-      - POSTGRES_DB=postgres
-    ports:
-      - "5432:5432"
-    networks:
-      - backend
-
-networks:
-  backend:
-    driver: bridge

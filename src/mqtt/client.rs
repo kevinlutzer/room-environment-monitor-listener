@@ -1,9 +1,8 @@
 use std::{sync::Arc, time::Duration};
 
+use diesel::PgConnection;
 use tokio::sync::Mutex;
 use tracing::info;
-
-use diesel::{insert_into, pg::PgConnection, prelude::*};
 
 use futures::stream::StreamExt;
 
@@ -12,8 +11,7 @@ use paho_mqtt::{
     MQTT_VERSION_5,
 };
 
-use crate::mqtt::message::REMStatus;
-use crate::schema::rem_status::dsl::*;
+use crate::mqtt::handler::handle_message;
 
 // The topics to which we subscribe.
 const TOPICS: &[&str] = &["rem/data", "rem/status"];
@@ -63,26 +61,7 @@ pub async fn mqtt_proc(
     info!("Waiting for messages...");
     while let Some(msg_opt) = strm.next().await {
         if let Some(msg) = msg_opt {
-            // Lock on the Database
-            let mut mut_conn = conn.lock().await;
-
-            // Handle the message
-            if msg.topic() == "rem/status" {
-                let status: REMStatus = serde_json::from_slice(msg.payload()).unwrap();
-                info!(
-                    "Device ID: {}, Uptime: {}",
-                    status.device_id, status.up_time
-                );
-
-                insert_into(rem_status)
-                    .values((
-                        id.eq(status.id),
-                        device_id.eq(status.device_id),
-                        up_time.eq(status.up_time),
-                    ))
-                    .execute(&mut *mut_conn)
-                    .unwrap();
-            }
+            handle_message(&conn, msg).await;
         } else {
             // A "None" means we were disconnected. Try to reconnect...
             info!("Lost connection. Attempting reconnect.");
