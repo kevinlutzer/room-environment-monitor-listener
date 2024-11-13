@@ -4,7 +4,7 @@ pub mod schema;
 pub mod settings;
 
 use api::server_proc;
-use mqtt::mqtt_proc;
+use mqtt::client::mqtt_proc;
 use settings::Settings;
 
 use dotenv::dotenv;

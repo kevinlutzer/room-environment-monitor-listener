@@ -1,9 +1,8 @@
 use std::{sync::Arc, time::Duration};
 
+use diesel::PgConnection;
 use tokio::sync::Mutex;
 use tracing::info;
-
-use diesel::{insert_into, pg::PgConnection, prelude::*};
 
 use futures::stream::StreamExt;
 
@@ -12,22 +11,8 @@ use paho_mqtt::{
     MQTT_VERSION_5,
 };
 
-use serde::Deserialize;
-
-use crate::schema::rem_status::dsl::*;
-
-#[derive(Deserialize)]
-struct REMStatus {
-    id: String,
-    #[serde(rename = "deviceId")]
-    device_id: String,
-    #[serde(rename = "uptime")]
-    up_time: i32,
-}
-
-// The topics to which we subscribe.
-const TOPICS: &[&str] = &["rem/data", "rem/status"];
-const QOS: &[i32] = &[1, 1];
+use crate::mqtt::handler::handle_message;
+use crate::mqtt::topic::{QOS, TOPICS};
 
 pub async fn mqtt_proc(
     cli: Arc<Mutex<AsyncClient>>,
@@ -73,26 +58,7 @@ pub async fn mqtt_proc(
     info!("Waiting for messages...");
     while let Some(msg_opt) = strm.next().await {
         if let Some(msg) = msg_opt {
-            // Lock on the Database
-            let mut mut_conn = conn.lock().await;
-
-            // Handle the message
-            if msg.topic() == "rem/status" {
-                let status: REMStatus = serde_json::from_slice(msg.payload()).unwrap();
-                info!(
-                    "Device ID: {}, Uptime: {}",
-                    status.device_id, status.up_time
-                );
-
-                insert_into(rem_status)
-                    .values((
-                        id.eq(status.id),
-                        device_id.eq(status.device_id),
-                        up_time.eq(status.up_time),
-                    ))
-                    .execute(&mut *mut_conn)
-                    .unwrap();
-            }
+            handle_message(&conn, msg).await;
         } else {
             // A "None" means we were disconnected. Try to reconnect...
             info!("Lost connection. Attempting reconnect.");
