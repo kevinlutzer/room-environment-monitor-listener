@@ -12,10 +12,7 @@ use paho_mqtt::{
 };
 
 use crate::mqtt::handler::handle_message;
-
-// The topics to which we subscribe.
-const TOPICS: &[&str] = &["rem/data", "rem/status"];
-const QOS: &[i32] = &[1, 1];
+use crate::mqtt::topic::{QOS, TOPICS};
 
 pub async fn mqtt_proc(
     cli: Arc<Mutex<AsyncClient>>,
