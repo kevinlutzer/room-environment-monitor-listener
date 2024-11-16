@@ -24,6 +24,7 @@ pub async fn mqtt_proc(
     // Get message stream before connecting.
     let strm = &mut cli_lock.get_stream(25);
 
+
     let lwt = paho_mqtt::Message::new(
         REM_LISTENER_DISCONNECT_TOPIC,
         "REM listener disconnection",
