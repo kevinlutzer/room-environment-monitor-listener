@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use diesel::PgConnection;
 use tokio::sync::Mutex;
-use tracing::info;
+use tracing::{error, info, warn};
 
 use futures::stream::StreamExt;
 
@@ -11,8 +11,9 @@ use paho_mqtt::{
     MQTT_VERSION_5,
 };
 
+use crate::mqtt::error::MQTTError;
 use crate::mqtt::handler::handle_message;
-use crate::mqtt::topic::{QOS, TOPICS};
+use crate::mqtt::topic::{QOS, REM_LISTENER_DISCONNECT_TOPIC, TOPICS};
 
 pub async fn mqtt_proc(
     cli: Arc<Mutex<AsyncClient>>,
@@ -23,10 +24,9 @@ pub async fn mqtt_proc(
     // Get message stream before connecting.
     let strm = &mut cli_lock.get_stream(25);
 
-    // Define the set of options for the connection
     let lwt = paho_mqtt::Message::new(
-        "test/lwt",
-        "[LWT] Async subscriber v5 lost connection",
+        REM_LISTENER_DISCONNECT_TOPIC,
+        "REM listener disconnection",
         paho_mqtt::QOS_1,
     );
 
@@ -58,7 +58,16 @@ pub async fn mqtt_proc(
     info!("Waiting for messages...");
     while let Some(msg_opt) = strm.next().await {
         if let Some(msg) = msg_opt {
-            handle_message(&conn, msg).await;
+            // Just log an errors if we can't handle the message, the only real error error we care about is
+            // a database error, not from a foreign key violation.
+            if let Err(err) = handle_message(&conn, msg).await {
+                if matches!(err, MQTTError::DatabaseError(_)) {
+                    error!("Unknown database error when trying to insert new data or status message: {:?}", err);
+                    continue;
+                }
+
+                warn!("Warning  handling message: {:?}", err);
+            }
         } else {
             // A "None" means we were disconnected. Try to reconnect...
             info!("Lost connection. Attempting reconnect.");
