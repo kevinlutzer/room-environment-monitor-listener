@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow = "1.0.93"
 async-std = "1.13.0"
 axum = "0.7.7"
 diesel = { version = "2.2.4", features = ["postgres"] }
@@ -15,6 +16,7 @@ futures = "0.3.31"
 paho-mqtt = "0.12"
 serde = { version = "1.0.210", features = ["derive"] }
 serde_json = "1.0.128"
+thiserror = "2.0.3"
 tokio = { version = "1.40.0", features = ["full"] }
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
