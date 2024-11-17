@@ -30,7 +30,7 @@ fn mqtt_error_from_database(e: diesel::result::Error, key: String) -> MQTTError 
         return MQTTError::DataEntryExists(key);
     }
 
-    return MQTTError::DatabaseError(e);
+    MQTTError::DatabaseError(e)
 }
 
 /// Handle the data message from the REM device and insert it into the database
