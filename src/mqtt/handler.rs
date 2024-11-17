@@ -8,6 +8,7 @@ use tokio::sync::Mutex;
 use tracing::{error, info};
 
 use crate::mqtt::{
+    error::MQTTError,
     message::{REMData, REMStatus},
     topic::REM_STATUS_TOPIC,
 };
@@ -20,8 +21,6 @@ use crate::schema::rem_status::dsl::{
     device_id as rem_status_device_id, id as rem_status_id, rem_status, up_time,
 };
 
-use super::error::MQTTError;
-
 fn mqtt_error_from_database(e: diesel::result::Error, key: String) -> MQTTError {
     // Only error type for a duplicate key violation is violation error
     if matches!(
@@ -31,7 +30,7 @@ fn mqtt_error_from_database(e: diesel::result::Error, key: String) -> MQTTError 
         return MQTTError::DataEntryExists(key);
     }
 
-    return MQTTError::DatabaseError(e);
+    MQTTError::DatabaseError(e)
 }
 
 /// Handle the data message from the REM device and insert it into the database
