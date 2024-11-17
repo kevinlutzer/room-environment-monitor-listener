@@ -17,8 +17,6 @@ EXPOSE 1883
 
 # Env Config that isn't parameterized
 ENV MQTT_PORT=1883
-ENV MQTT_HOST=mosquitto
-ENV RUST_LOG=info
 ENV HTTP_HOST=0.0.0.0
 ENV HTTP_PORT=8080
 

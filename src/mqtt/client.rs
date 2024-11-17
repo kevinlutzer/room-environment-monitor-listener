@@ -1,29 +1,24 @@
 use std::{sync::Arc, time::Duration};
 
+use anyhow::Result;
 use diesel::PgConnection;
+use futures::stream::StreamExt;
 use tokio::sync::Mutex;
 use tracing::{error, info, warn};
 
-use futures::stream::StreamExt;
-
 use paho_mqtt::{
-    self as mqtt, properties, AsyncClient, ConnectOptionsBuilder, PropertyCode, SubscribeOptions,
-    MQTT_VERSION_5,
+    properties, AsyncClient, ConnectOptionsBuilder, PropertyCode, SubscribeOptions, MQTT_VERSION_5,
 };
 
 use crate::mqtt::error::MQTTError;
 use crate::mqtt::handler::handle_message;
 use crate::mqtt::topic::{QOS, REM_LISTENER_DISCONNECT_TOPIC, TOPICS};
 
-pub async fn mqtt_proc(
-    cli: Arc<Mutex<AsyncClient>>,
-    conn: Arc<Mutex<PgConnection>>,
-) -> Result<(), mqtt::Error> {
+pub async fn mqtt_proc(cli: Arc<Mutex<AsyncClient>>, conn: Arc<Mutex<PgConnection>>) -> Result<()> {
     let mut cli_lock = cli.lock().await;
 
     // Get message stream before connecting.
     let strm = &mut cli_lock.get_stream(25);
-
 
     let lwt = paho_mqtt::Message::new(
         REM_LISTENER_DISCONNECT_TOPIC,
@@ -71,17 +66,16 @@ pub async fn mqtt_proc(
             }
         } else {
             // A "None" means we were disconnected. Try to reconnect...
-            info!("Lost connection. Attempting reconnect.");
+            warn!("Lost connection. Attempting reconnect.");
 
             let cli_lock = cli.lock().await;
             while let Err(err) = &cli_lock.reconnect().await {
-                info!("Error reconnecting: {}", err);
+                error!("Error reconnecting: {}", err);
                 // For tokio use: tokio::time::delay_for()
                 async_std::task::sleep(Duration::from_millis(1000)).await;
             }
         }
     }
 
-    // Explicit return type for the async block
-    Ok::<(), paho_mqtt::Error>(())
+    Ok(())
 }

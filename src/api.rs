@@ -3,9 +3,10 @@ use std::{
     sync::Arc,
 };
 
-use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::get};
+use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::get, Json};
 use diesel::{sql_query, PgConnection, RunQueryDsl};
 use paho_mqtt::AsyncClient;
+use serde::Serialize;
 use tokio::sync::Mutex;
 use tracing::{error, info};
 
@@ -51,6 +52,25 @@ async fn healthcheck_handler(State(app_state): State<AppState>) -> (StatusCode, 
     (StatusCode::OK, "Ok")
 }
 
+/// VersionResponse
+///
+/// Contains information about the current running server version
+#[derive(Serialize)]
+pub struct VersionResponse {
+    version: String,
+    commit: String,
+}
+
+/// Version
+///
+/// Returns the version information of the application including a sematic version on a commit hash.
+pub async fn version_handler() -> Json<VersionResponse> {
+    Json(VersionResponse {
+        version: env!("CARGO_PKG_VERSION").to_string(),
+        commit: std::env::var("VERGEN_GIT_SHA").unwrap().to_string(),
+    })
+}
+
 /// Server process
 ///
 /// This function creates the axum server and binds it to a TCP socket. This function
@@ -64,6 +84,7 @@ pub async fn server_proc(
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
 
     let app = axum::Router::new()
+        .route("/v1/version", get(version_handler))
         .route("/v1/healthcheck", get(healthcheck_handler))
         .fallback(default_handler)
         .with_state(AppState { mqtt_client, db });
