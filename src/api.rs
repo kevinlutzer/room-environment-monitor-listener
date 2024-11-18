@@ -1,4 +1,5 @@
 use std::{
+    env,
     net::{IpAddr, SocketAddr},
     sync::Arc,
 };
@@ -67,7 +68,9 @@ pub struct VersionResponse {
 pub async fn version_handler() -> Json<VersionResponse> {
     Json(VersionResponse {
         version: env!("CARGO_PKG_VERSION").to_string(),
-        commit: std::env::var("VERGEN_GIT_SHA").unwrap().to_string(),
+        // Read versioning information from rustc environment variables at compile time
+        // This variable is added as `cargo:rustc-env=VERGEN_GIT_SHA=blah` in the build.rs
+        commit: std::env!("VERGEN_GIT_SHA").to_string(),
     })
 }
 
