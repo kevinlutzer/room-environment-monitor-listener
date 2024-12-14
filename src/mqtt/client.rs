@@ -1,43 +1,25 @@
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 
 use anyhow::Result;
 use diesel::PgConnection;
 use futures::stream::StreamExt;
-use tokio::sync::Mutex;
+use tokio::{
+    sync::Mutex,
+    time::{sleep, Duration},
+};
 use tracing::{error, info, warn};
 
-use paho_mqtt::{
-    properties, AsyncClient, ConnectOptionsBuilder, PropertyCode, SubscribeOptions, MQTT_VERSION_5,
-};
+use paho_mqtt::{AsyncClient, SubscribeOptions};
 
 use crate::mqtt::error::MQTTError;
 use crate::mqtt::handler::handle_message;
-use crate::mqtt::topic::{QOS, REM_LISTENER_DISCONNECT_TOPIC, TOPICS};
+use crate::mqtt::topic::{QOS, TOPICS};
 
 pub async fn mqtt_proc(cli: Arc<Mutex<AsyncClient>>, conn: Arc<Mutex<PgConnection>>) -> Result<()> {
     let mut cli_lock = cli.lock().await;
 
     // Get message stream before connecting.
     let strm = &mut cli_lock.get_stream(25);
-
-    let lwt = paho_mqtt::Message::new(
-        REM_LISTENER_DISCONNECT_TOPIC,
-        "REM listener disconnection",
-        paho_mqtt::QOS_1,
-    );
-
-    // Connect with MQTT v5 and a persistent server session (no clean start).
-    // For a persistent v5 session, we must set the Session Expiry Interval
-    // on the server. Here we set that requests will persist for an hour
-    // (3600sec) if the service disconnects or restarts.
-    let conn_opts = ConnectOptionsBuilder::with_mqtt_version(MQTT_VERSION_5)
-        .clean_start(false)
-        .properties(properties![PropertyCode::SessionExpiryInterval => 3600])
-        .will_message(lwt)
-        .finalize();
-
-    // Make the connection to the broker
-    cli_lock.connect(conn_opts).await?;
 
     info!("Subscribing to topics: {:?}", TOPICS);
     let sub_opts = vec![SubscribeOptions::with_retain_as_published(); TOPICS.len()];
@@ -62,7 +44,7 @@ pub async fn mqtt_proc(cli: Arc<Mutex<AsyncClient>>, conn: Arc<Mutex<PgConnectio
                     continue;
                 }
 
-                warn!("Warning  handling message: {:?}", err);
+                warn!("Warning handling message: {:?}", err);
             }
         } else {
             // A "None" means we were disconnected. Try to reconnect...
@@ -71,8 +53,7 @@ pub async fn mqtt_proc(cli: Arc<Mutex<AsyncClient>>, conn: Arc<Mutex<PgConnectio
             let cli_lock = cli.lock().await;
             while let Err(err) = &cli_lock.reconnect().await {
                 error!("Error reconnecting: {}", err);
-                // For tokio use: tokio::time::delay_for()
-                async_std::task::sleep(Duration::from_millis(1000)).await;
+                sleep(Duration::from_millis(1000)).await;
             }
         }
     }
