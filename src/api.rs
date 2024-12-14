@@ -96,7 +96,7 @@ pub async fn server_proc(
     loop {
         // TCP listener fails to be instantiated when we already are binding to that address or we run out of memory
         // Note that this shouldn't happen in production so it is safe to unwrap.
-        #[clippy::allow(unwrap_used)]
+        #[allow(clippy::unwrap_used)]
         let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
 
         // App can be finiky some times, so its better to keep retrying on setting it up rather then panicic.

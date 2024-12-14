@@ -19,7 +19,7 @@ use std::{
     time::Duration,
 };
 use tokio::{join, sync::Mutex};
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info};
 
 use diesel::prelude::*;
 
@@ -38,7 +38,7 @@ async fn main() {
         .with_max_level(tracing::Level::INFO)
         .init();
 
-    #[clippy::allow(unwrap_used)]
+    #[allow(clippy::unwrap_used)]
     // Safe to unwrap because we know that the environment settings will exist
     let config = Arc::new(Settings::init_from_env().unwrap());
     let host = format!("mqtt://{}:{}", config.mqtt_host, config.mqtt_port);
@@ -97,7 +97,7 @@ async fn main() {
             debug!("Waiting a second and then retrying, on attempt: {}", count);
             tokio::time::sleep(Duration::from_millis(1000)).await;
 
-            count = count + 1;
+            count += 1;
             continue;
         }
 
@@ -118,7 +118,7 @@ async fn main() {
     }
 
     // Safe to unwrap because we previously checked the error
-    #[clippy::allow(unwrap_used)]
+    #[allow(clippy::unwrap_used)]
     let pg_connection_mutex: Arc<Mutex<PgConnection>> =
         Arc::new(Mutex::new(pg_connection.unwrap()));
 
