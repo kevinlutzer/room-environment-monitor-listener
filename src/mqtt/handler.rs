@@ -8,7 +8,7 @@ use tokio::sync::Mutex;
 use tracing::{error, info};
 
 use crate::mqtt::{
-    error::MQTTError,
+    error::MQTTClientError,
     message::{REMData, REMStatus},
     topic::REM_STATUS_TOPIC,
 };
@@ -21,25 +21,25 @@ use crate::schema::rem_status::dsl::{
     device_id as rem_status_device_id, id as rem_status_id, rem_status, up_time,
 };
 
-fn mqtt_error_from_database(e: diesel::result::Error, key: String) -> MQTTError {
+fn mqtt_error_from_database(e: diesel::result::Error, key: String) -> MQTTClientError {
     // Only error type for a duplicate key violation is violation error
     if matches!(
         e,
         diesel::result::Error::DatabaseError(diesel::result::DatabaseErrorKind::UniqueViolation, _)
     ) {
-        return MQTTError::DataEntryExists(key);
+        return MQTTClientError::DataEntryExists(key);
     }
 
-    MQTTError::DatabaseError(e)
+    MQTTClientError::DatabaseError(e)
 }
 
 /// Handle the data message from the REM device and insert it into the database
 async fn handle_data_message(
     conn: &Arc<Mutex<PgConnection>>,
     msg: Message,
-) -> Result<String, MQTTError> {
+) -> Result<String, MQTTClientError> {
     let data: REMData =
-        serde_json::from_slice(msg.payload()).map_err(|_| MQTTError::InvalidMessage)?;
+        serde_json::from_slice(msg.payload()).map_err(|_| MQTTClientError::InvalidMessage)?;
 
     info!("ID: {}, Device ID: {}", data.id, data.device_id);
 
@@ -68,14 +68,14 @@ async fn handle_data_message(
 async fn handle_status_message(
     conn: &Arc<Mutex<PgConnection>>,
     msg: Message,
-) -> Result<String, MQTTError> {
+) -> Result<String, MQTTClientError> {
     // Handle the message for rem/status
     let status: REMStatus = match serde_json::from_slice(msg.payload()) {
         Ok(s) => s,
         Err(e) => {
             info!("{:?}", msg.payload());
             error!("Error parsing status message: {:?}", e);
-            return Err(MQTTError::InvalidMessage);
+            return Err(MQTTClientError::InvalidMessage);
         }
     };
 
@@ -105,7 +105,7 @@ async fn handle_status_message(
 pub async fn handle_message(
     conn: &Arc<Mutex<PgConnection>>,
     msg: Message,
-) -> Result<(), MQTTError> {
+) -> Result<(), MQTTClientError> {
     // Handle the message for rem/status
     if msg.topic() == REM_STATUS_TOPIC {
         handle_status_message(conn, msg).await?
