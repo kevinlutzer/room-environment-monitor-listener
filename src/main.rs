@@ -3,6 +3,7 @@ pub mod mqtt;
 pub mod schema;
 pub mod settings;
 pub mod repo;
+pub mod model;
 
 use api::server_proc;
 use mqtt::{client::mqtt_proc, topic::REM_LISTENER_DISCONNECT_TOPIC};
@@ -19,6 +20,7 @@ use std::{
     sync::Arc,
     time::Duration,
 };
+
 use tokio::{join, sync::Mutex};
 use tracing::{debug, error, info};
 
