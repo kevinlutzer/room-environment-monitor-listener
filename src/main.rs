@@ -2,6 +2,7 @@ pub mod api;
 pub mod mqtt;
 pub mod schema;
 pub mod settings;
+pub mod repo;
 
 use api::server_proc;
 use mqtt::{client::mqtt_proc, topic::REM_LISTENER_DISCONNECT_TOPIC};
