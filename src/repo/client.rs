@@ -4,25 +4,17 @@ use diesel::{insert_into, pg::PgConnection, prelude::*};
 use tokio::sync::Mutex;
 
 use crate::model::{REMData, REMStatus};
-use crate::schema::rem_data::dsl::{
-    device_id as rem_data_device_id, humidity, id as rem_data_id, pm10, pm1_0, pm2_5, pressure,
-    rem_data, temperature,
-};
-use crate::schema::rem_status::dsl::{
-    device_id as rem_status_device_id, id as rem_status_id, rem_status, up_time,
+use crate::schema::{
+    rem_data::dsl::{
+        device_id as rem_data_device_id, humidity, id as rem_data_id, pm10, pm1_0, pm2_5, pressure,
+        rem_data, temperature,
+    },
+    rem_status::dsl::{
+        device_id as rem_status_device_id, id as rem_status_id, rem_status, up_time,
+    },
 };
 
-use thiserror::Error;
-
-#[derive(Error, Debug)]
-pub enum REMRepoError {
-    #[error("Database entry already exists for key: {}", .0)]
-    DataEntryExists(String),
-    #[error("Database error: {}", .0)]
-    DatabaseError(#[from] diesel::result::Error),
-    #[error("Invalid message")]
-    InvalidMessage,
-}
+use super::error::REMRepoError;
 
 fn repo_error_from_database(e: diesel::result::Error, key: String) -> REMRepoError {
     // Only error type for a duplicate key violation is violation error
@@ -41,9 +33,9 @@ pub struct REMRepo {
 }
 
 impl REMRepo {
-    /// REMRepo constructor, this creates a new instance of the 
+    /// REMRepo constructor, this creates a new instance of the
     /// REMRepo struct with the passed db connection instance
-    fn new(db: Arc<Mutex<PgConnection>>) -> Self {
+    pub fn new(db: Arc<Mutex<PgConnection>>) -> Self {
         REMRepo { db }
     }
 
@@ -61,7 +53,7 @@ impl REMRepo {
             pm10.eq(data.pm10),
             humidity.eq(data.humidity),
         );
-    
+
         // Lock on the Database
         let mut mut_conn = self.db.lock().await;
         insert_into(rem_data)
@@ -73,10 +65,7 @@ impl REMRepo {
     }
 
     /// Handle the status message from the REM device and insert it into the database
-    pub async fn insert_rem_status(
-        &self,
-        status: REMStatus,
-    ) -> Result<(), REMRepoError> {
+    pub async fn insert_rem_status(&self, status: REMStatus) -> Result<(), REMRepoError> {
         let r = (
             rem_status_id.eq(status.id.clone()),
             rem_status_device_id.eq(status.device_id),
@@ -88,8 +77,7 @@ impl REMRepo {
         insert_into(rem_status)
             .values(r)
             .execute(&mut *mut_conn)
-            .map_err(|e| repo_error_from_database(e, status.id.clone()))?;
-        
-        Ok(())
+            .map(|op| ())
+            .map_err(|e| repo_error_from_database(e, status.id.clone()))
     }
 }

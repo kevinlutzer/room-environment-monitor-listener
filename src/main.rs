@@ -1,12 +1,13 @@
 pub mod api;
+pub mod model;
 pub mod mqtt;
+pub mod repo;
 pub mod schema;
 pub mod settings;
-pub mod repo;
-pub mod model;
 
 use api::server_proc;
 use mqtt::{client::mqtt_proc, topic::REM_LISTENER_DISCONNECT_TOPIC};
+use repo::client::REMRepo;
 use settings::Settings;
 
 use dotenv::dotenv;
@@ -129,7 +130,7 @@ async fn main() {
     let _ = join!(
         tokio::spawn(mqtt_proc(
             mqtt_client_mutex.clone(),
-            pg_connection_mutex.clone()
+            Arc::new(Mutex::new(REMRepo::new(pg_connection_mutex.clone())))
         )),
         tokio::spawn(server_proc(
             config,

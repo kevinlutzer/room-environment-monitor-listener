@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-use diesel::PgConnection;
 use futures::stream::StreamExt;
 use tokio::{
     sync::Mutex,
@@ -11,20 +10,22 @@ use tracing::{error, info, warn};
 
 use paho_mqtt::{AsyncClient, SubscribeOptions};
 
-use crate::mqtt::error::MQTTClientError;
-use crate::mqtt::handler::handle_message;
-use crate::mqtt::topic::{QOS, TOPICS};
+use crate::mqtt::{
+    handler::handle_message,
+    topic::{QOS, SUBSCRIBED_TOPICS},
+};
+use crate::repo::client::REMRepo;
 
-pub async fn mqtt_proc(cli: Arc<Mutex<AsyncClient>>, conn: Arc<Mutex<PgConnection>>) -> Result<()> {
+pub async fn mqtt_proc(cli: Arc<Mutex<AsyncClient>>, repo: Arc<Mutex<REMRepo>>) -> Result<()> {
     let mut cli_lock = cli.lock().await;
 
     // Get message stream before connecting.
     let strm = &mut cli_lock.get_stream(25);
 
-    info!("Subscribing to topics: {:?}", TOPICS);
-    let sub_opts = vec![SubscribeOptions::with_retain_as_published(); TOPICS.len()];
+    info!("Subscribing to topics: {:?}", SUBSCRIBED_TOPICS);
+    let sub_opts = vec![SubscribeOptions::with_retain_as_published(); SUBSCRIBED_TOPICS.len()];
     cli_lock
-        .subscribe_many_with_options(TOPICS, QOS, &sub_opts, None)
+        .subscribe_many_with_options(SUBSCRIBED_TOPICS, QOS, &sub_opts, None)
         .await?;
 
     drop(cli_lock);
@@ -38,12 +39,7 @@ pub async fn mqtt_proc(cli: Arc<Mutex<AsyncClient>>, conn: Arc<Mutex<PgConnectio
         if let Some(msg) = msg_opt {
             // Just log an errors if we can't handle the message, the only real error error we care about is
             // a database error, not from a foreign key violation.
-            if let Err(err) = handle_message(&conn, msg).await {
-                if matches!(err, MQTTClientError::DatabaseError(_)) {
-                    error!("Unknown database error when trying to insert new data or status message: {:?}", err);
-                    continue;
-                }
-
+            if let Err(err) = handle_message(&repo, msg).await {
                 warn!("Warning handling message: {:?}", err);
             }
         } else {
