@@ -64,7 +64,7 @@ impl REMRepo {
         Ok(())
     }
 
-    /// Handle the status message from the REM device and insert it into the database. If there 
+    /// Handle the status message from the REM device and insert it into the database. If there
     /// is any issue with insertion it will return a REMRepoError type
     pub async fn insert_rem_status(&self, status: REMStatus) -> Result<(), REMRepoError> {
         let r = (
