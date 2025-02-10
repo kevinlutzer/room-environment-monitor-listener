@@ -9,6 +9,6 @@ pub enum MQTTClientError {
     Repo(#[from] REMRepoError),
     #[error("Invalid message")]
     InvalidMessage,
-    #[error("Unsupported message")]
-    UnsupportedMessage,
+    #[error("Unsupported message type: {}", .0)]
+    UnsupportedMessage(String),
 }

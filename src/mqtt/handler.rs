@@ -30,7 +30,7 @@ pub async fn handle_message(
                 .await
                 .insert_rem_data(data)
                 .await
-                .map_err(|f| MQTTClientError::Repo(f))
+                .map_err(MQTTClientError::Repo)
         }
 
         REM_STATUS_TOPIC => {
@@ -52,9 +52,9 @@ pub async fn handle_message(
                 .await
                 .insert_rem_status(status)
                 .await
-                .map_err(|f| MQTTClientError::Repo(f))
+                .map_err(MQTTClientError::Repo)
         }
 
-        _ => Err(MQTTClientError::UnsupportedMessage),
+        _ => Err(MQTTClientError::UnsupportedMessage(topic.to_string())),
     }
 }

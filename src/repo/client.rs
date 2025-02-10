@@ -34,7 +34,7 @@ pub struct REMRepo {
 
 impl REMRepo {
     /// REMRepo constructor, this creates a new instance of the
-    /// REMRepo struct with the passed db connection instance
+    /// struct with the passed db connection instance
     pub fn new(db: Arc<Mutex<PgConnection>>) -> Self {
         REMRepo { db }
     }
@@ -64,7 +64,8 @@ impl REMRepo {
         Ok(())
     }
 
-    /// Handle the status message from the REM device and insert it into the database
+    /// Handle the status message from the REM device and insert it into the database. If there 
+    /// is any issue with insertion it will return a REMRepoError type
     pub async fn insert_rem_status(&self, status: REMStatus) -> Result<(), REMRepoError> {
         let r = (
             rem_status_id.eq(status.id.clone()),
@@ -77,7 +78,7 @@ impl REMRepo {
         insert_into(rem_status)
             .values(r)
             .execute(&mut *mut_conn)
-            .map(|op| ())
+            .map(|_| ())
             .map_err(|e| repo_error_from_database(e, status.id.clone()))
     }
 }
