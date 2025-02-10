@@ -1,14 +1,11 @@
-use crate::repo::error::REMRepoError;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
-pub enum MQTTClientError {
+pub enum REMRepoError {
     #[error("Database entry already exists for key: {}", .0)]
     DataEntryExists(String),
     #[error("Database error: {}", .0)]
-    Repo(#[from] REMRepoError),
+    DatabaseError(#[from] diesel::result::Error),
     #[error("Invalid message")]
     InvalidMessage,
-    #[error("Unsupported message type: {}", .0)]
-    UnsupportedMessage(String),
 }

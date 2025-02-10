@@ -2,13 +2,14 @@ use std::{
     env,
     net::{IpAddr, SocketAddr},
     sync::Arc,
+    time::Duration,
 };
 
 use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::get, Json};
 use diesel::{sql_query, PgConnection, RunQueryDsl};
 use paho_mqtt::AsyncClient;
 use serde::Serialize;
-use tokio::sync::Mutex;
+use tokio::{sync::Mutex, time::sleep};
 use tracing::{error, info};
 
 use crate::settings::Settings;
@@ -82,9 +83,9 @@ pub async fn server_proc(
     config: Arc<Settings>,
     mqtt_client: Arc<Mutex<AsyncClient>>,
     db: Arc<Mutex<PgConnection>>,
-) {
+) -> Result<(), anyhow::Error> {
     let addr = SocketAddr::new(IpAddr::V4(config.host), config.port);
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    info!("Listening on {}", addr);
 
     let app = axum::Router::new()
         .route("/v1/version", get(version_handler))
@@ -92,6 +93,19 @@ pub async fn server_proc(
         .fallback(default_handler)
         .with_state(AppState { mqtt_client, db });
 
-    info!("Listening on {}", addr);
-    axum::serve(listener, app).await.unwrap();
+    loop {
+        // TCP listener fails to be instantiated when we already are binding to that address or we run out of memory
+        // Note that this shouldn't happen in production so it is safe to unwrap.
+        #[allow(clippy::unwrap_used)]
+        let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+
+        // App can be finiky some times, so its better to keep retrying on setting it up rather then panicic.
+        if let Err(e) = axum::serve(listener, app.clone()).await {
+            error!(
+                "Failed to setup axum server with error, retrying after 1 second: {}",
+                e
+            );
+            sleep(Duration::from_millis(1000)).await;
+        }
+    }
 }
