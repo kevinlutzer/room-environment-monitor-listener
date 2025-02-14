@@ -39,6 +39,14 @@ impl REMRepo {
         REMRepo { db }
     }
 
+    pub async fn list_data(&self) -> Result<Vec<REMData>, REMRepoError> {
+        let mut mut_conn = self.db.lock().await;
+        let data = rem_data
+            .load::<REMData>(&mut *mut_conn)?;
+
+        Ok(data)
+    }
+
     /// This function is used to insert a new record into the database
     /// it takes a reference to the REM struct and returns a Result
     /// with the inserted REM struct or an error

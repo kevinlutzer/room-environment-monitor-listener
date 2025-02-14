@@ -12,12 +12,17 @@ use serde::Serialize;
 use tokio::{sync::Mutex, time::sleep};
 use tracing::{error, info};
 
-use crate::settings::Settings;
+use crate::{
+    model::REMData,
+    repo::client::REMRepo,
+    settings::Settings,
+};
 
 #[derive(Clone)]
 struct AppState {
     mqtt_client: Arc<Mutex<AsyncClient>>,
     db: Arc<Mutex<PgConnection>>,
+    repo: Arc<Mutex<REMRepo>>,
 }
 
 async fn default_handler() -> impl IntoResponse {
@@ -75,6 +80,21 @@ pub async fn version_handler() -> Json<VersionResponse> {
     })
 }
 
+/// List Data
+///
+/// Returns a page of REM data stored in the database. This API is unauthenticated
+async fn list_data(State(app_state): State<AppState>) -> Json<Vec<REMData>> {
+    let repo = app_state.repo.lock().await;
+    Json(repo.list_data().await.unwrap())
+}
+
+/// List Status
+// ///
+// /// Returns a page of REM status stored in the database. This API is unauthenticated
+// async fn list_status(State(app_state): State<AppState>) -> Json<REMStatus> {
+//     Json(Vec::<REMStatus>new())
+// }
+
 /// Server process
 ///
 /// This function creates the axum server and binds it to a TCP socket. This function
@@ -83,6 +103,7 @@ pub async fn server_proc(
     config: Arc<Settings>,
     mqtt_client: Arc<Mutex<AsyncClient>>,
     db: Arc<Mutex<PgConnection>>,
+    repo: Arc<Mutex<REMRepo>>,
 ) -> Result<(), anyhow::Error> {
     let addr = SocketAddr::new(IpAddr::V4(config.host), config.port);
     info!("Listening on {}", addr);
@@ -90,8 +111,14 @@ pub async fn server_proc(
     let app = axum::Router::new()
         .route("/v1/version", get(version_handler))
         .route("/v1/healthcheck", get(healthcheck_handler))
+        .route("/v1/rem/data/list", get(list_data))
+        // .route("/v1/rem/status/list", get(list_status))
         .fallback(default_handler)
-        .with_state(AppState { mqtt_client, db });
+        .with_state(AppState {
+            mqtt_client,
+            db,
+            repo,
+        });
 
     loop {
         // TCP listener fails to be instantiated when we already are binding to that address or we run out of memory

@@ -126,16 +126,16 @@ async fn main() {
     let pg_connection_mutex: Arc<Mutex<PgConnection>> =
         Arc::new(Mutex::new(pg_connection.unwrap()));
 
+    let repo = Arc::new(Mutex::new(REMRepo::new(pg_connection_mutex.clone())));
+
     // Start routine to handle mqtt messages from subscribed topics
     let _ = join!(
-        tokio::spawn(mqtt_proc(
-            mqtt_client_mutex.clone(),
-            Arc::new(Mutex::new(REMRepo::new(pg_connection_mutex.clone())))
-        )),
+        tokio::spawn(mqtt_proc(mqtt_client_mutex.clone(), repo.clone())),
         tokio::spawn(server_proc(
             config,
             mqtt_client_mutex.clone(),
-            pg_connection_mutex.clone()
+            pg_connection_mutex.clone(),
+            repo
         ))
     );
 }
