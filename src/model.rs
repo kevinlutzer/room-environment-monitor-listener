@@ -24,4 +24,7 @@ pub struct REMData {
     pub temperature: f32,
     pub humidity: f32,
     pub pressure: f32,
+
+    #[serde(rename = "vocIndex")]
+    pub voc_index: f32,
 }

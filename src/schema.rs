@@ -11,6 +11,7 @@ diesel::table! {
         pm1_0 -> Nullable<Float4>,
         pm10 -> Nullable<Float4>,
         humidity -> Nullable<Float4>,
+        voc_index -> Nullable<Float4>,
         created_at -> Nullable<Timestamptz>,
     }
 }

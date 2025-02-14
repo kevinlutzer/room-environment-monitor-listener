@@ -7,7 +7,7 @@ use crate::model::{REMData, REMStatus};
 use crate::schema::{
     rem_data::dsl::{
         device_id as rem_data_device_id, humidity, id as rem_data_id, pm10, pm1_0, pm2_5, pressure,
-        rem_data, temperature,
+        rem_data, temperature, voc_index,
     },
     rem_status::dsl::{
         device_id as rem_status_device_id, id as rem_status_id, rem_status, up_time,
@@ -52,6 +52,7 @@ impl REMRepo {
             pm1_0.eq(data.pm1_0),
             pm10.eq(data.pm10),
             humidity.eq(data.humidity),
+            voc_index.eq(data.voc_index),
         );
 
         // Lock on the Database

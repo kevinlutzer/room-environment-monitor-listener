@@ -8,5 +8,6 @@ CREATE TABLE rem_data (
     pm1_0  REAL,
     pm10   REAL,
     humidity REAL,
+    voc_index REAL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
