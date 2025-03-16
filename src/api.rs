@@ -84,8 +84,8 @@ pub async fn version_handler() -> Json<VersionResponse> {
 ///
 /// Returns a page of REM data stored in the database. This API is unauthenticated
 async fn list_data(State(app_state): State<AppState>) -> Json<Vec<REMData>> {
-    let repo = app_state.repo.lock().await;
-    Json(repo.list_data().await.unwrap())
+    let _ = app_state.repo.lock().await;
+    Json(Vec::new())
 }
 
 /// List Status
