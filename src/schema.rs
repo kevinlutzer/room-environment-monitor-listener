@@ -26,7 +26,4 @@ diesel::table! {
     }
 }
 
-diesel::allow_tables_to_appear_in_same_query!(
-    rem_data,
-    rem_status,
-);
+diesel::allow_tables_to_appear_in_same_query!(rem_data, rem_status,);

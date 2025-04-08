@@ -1,13 +1,8 @@
-use chrono::NaiveDateTime;
-use diesel::{
-    prelude::{Queryable, QueryableByName}, Selectable
-};
-
 use serde::{Deserialize, Serialize};
 
-/// REMStatus is the structure of the status that we receive from the REM device.
-#[derive(Deserialize)]
-pub struct REMStatusDB {
+/// RemStatus is the structure of the status that we receive from the REM device.
+#[derive(Deserialize, Serialize, Debug)]
+pub struct RemStatus {
     pub id: String,
     #[serde(rename = "deviceId")]
     pub device_id: String,
@@ -15,11 +10,9 @@ pub struct REMStatusDB {
     pub up_time: i32,
 }
 
-/// REMData is the structure of the data that we receive from the REM device.
-#[derive(Queryable, QueryableByName, Selectable, Serialize, Deserialize, PartialEq, Debug)]
-#[diesel(table_name = crate::schema::rem_data)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct REMDataDB {
+/// RemData is the structure of the data that we receive from the REM device.
+#[derive(Deserialize, Serialize, Debug)]
+pub struct RemData {
     pub id: String,
 
     #[serde(rename = "deviceId")]
@@ -34,6 +27,4 @@ pub struct REMDataDB {
 
     #[serde(rename = "vocIndex")]
     pub voc_index: f32,
-
-    pub created_at: NaiveDateTime,
 }

@@ -8,9 +8,9 @@ pub mod topic;
 
 use api::server_proc;
 use mqtt::mqtt_proc;
-use topic::REM_LISTENER_DISCONNECT_TOPIC;
-use repo::client::REMRepo;
+use repo::RemRepo;
 use settings::Settings;
+use topic::REM_LISTENER_DISCONNECT_TOPIC;
 
 use dotenv::dotenv;
 use envconfig::Envconfig;
@@ -26,6 +26,7 @@ use std::{
 
 use tokio::{join, sync::Mutex};
 use tracing::{debug, error, info};
+use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 
 use diesel::prelude::*;
 
@@ -37,15 +38,17 @@ const POSTGRES_CONNECTION_ERR: i32 = 5;
 #[tokio::main]
 async fn main() {
     // Load the configuration from the environment.
-    dotenv().ok();
+    dotenv().unwrap();
 
-    // Setup tracing subscriber
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::INFO)
+    // Setup tracing subscriber. This will configure the logger to read th
+    // RUST_LOG environment variable.
+    tracing_subscriber::registry()
+        .with(fmt::layer())
+        .with(EnvFilter::from_default_env())
         .init();
 
-    #[allow(clippy::unwrap_used)]
     // Safe to unwrap because we know that the environment settings will exist
+    #[allow(clippy::unwrap_used)]
     let config = Arc::new(Settings::init_from_env().unwrap());
     let host = format!("mqtt://{}:{}", config.mqtt_host, config.mqtt_port);
 
@@ -128,7 +131,7 @@ async fn main() {
     let pg_connection_mutex: Arc<Mutex<PgConnection>> =
         Arc::new(Mutex::new(pg_connection.unwrap()));
 
-    let repo = Arc::new(Mutex::new(REMRepo::new(pg_connection_mutex.clone())));
+    let repo = Arc::new(Mutex::new(RemRepo::new(pg_connection_mutex.clone())));
 
     // Start routine to handle mqtt messages from subscribed topics
     let _ = join!(

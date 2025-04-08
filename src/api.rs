@@ -5,6 +5,7 @@ use std::{
     time::Duration,
 };
 
+use crate::{model::RemData, repo::RemRepo, settings::Settings};
 use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::get, Json};
 use diesel::{sql_query, PgConnection, RunQueryDsl};
 use paho_mqtt::AsyncClient;
@@ -12,13 +13,11 @@ use serde::Serialize;
 use tokio::{sync::Mutex, time::sleep};
 use tracing::{error, info};
 
-use crate::{model::REMData, repo::client::REMRepo, settings::Settings};
-
 #[derive(Clone)]
 struct AppState {
     mqtt_client: Arc<Mutex<AsyncClient>>,
     db: Arc<Mutex<PgConnection>>,
-    repo: Arc<Mutex<REMRepo>>,
+    repo: Arc<Mutex<RemRepo>>,
 }
 
 async fn default_handler() -> impl IntoResponse {
@@ -79,7 +78,7 @@ pub async fn version_handler() -> Json<VersionResponse> {
 /// List Data
 ///
 /// Returns a page of REM data stored in the database. This API is unauthenticated
-async fn list_data(State(app_state): State<AppState>) -> Json<Vec<REMData>> {
+async fn list_data(State(app_state): State<AppState>) -> Json<Vec<RemData>> {
     let _ = app_state.repo.lock().await;
     Json(Vec::new())
 }
@@ -99,7 +98,7 @@ pub async fn server_proc(
     config: Arc<Settings>,
     mqtt_client: Arc<Mutex<AsyncClient>>,
     db: Arc<Mutex<PgConnection>>,
-    repo: Arc<Mutex<REMRepo>>,
+    repo: Arc<Mutex<RemRepo>>,
 ) -> Result<(), anyhow::Error> {
     let addr = SocketAddr::new(IpAddr::V4(config.host), config.port);
     info!("Listening on {}", addr);

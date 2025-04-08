@@ -11,13 +11,13 @@ use tracing::{error, info, warn};
 
 use paho_mqtt::{AsyncClient, Message, SubscribeOptions};
 
-use crate::repo::error::REMRepoError;
+use crate::topic::{REM_DATA_TOPIC, REM_STATUS_TOPIC};
 use crate::{
-    model::{REMData, REMStatus},
-    topic::{REM_DATA_TOPIC, REM_STATUS_TOPIC},
+    model::{RemData, RemStatus},
+    repo::RemRepoError,
 };
 use crate::{
-    repo::client::REMRepo,
+    repo::RemRepo,
     topic::{QOS, SUBSCRIBED_TOPICS},
 };
 
@@ -26,7 +26,7 @@ pub enum MQTTClientError {
     #[error("Database entry already exists for key: {}", .0)]
     DataEntryExists(String),
     #[error("Database error: {}", .0)]
-    Repo(#[from] REMRepoError),
+    Repo(#[from] RemRepoError),
     #[error("Invalid message")]
     InvalidMessage,
     #[error("Unsupported message type: {}", .0)]
@@ -35,11 +35,11 @@ pub enum MQTTClientError {
 
 /// Handle the message from the MQTT server. This function will determine if the message is a status
 /// message or a data message and then create the appropriate table row.
-async fn handle_message(repo: &Arc<Mutex<REMRepo>>, msg: Message) -> Result<(), MQTTClientError> {
+async fn handle_message(repo: &Arc<Mutex<RemRepo>>, msg: Message) -> Result<(), MQTTClientError> {
     let topic = msg.topic();
     match topic {
         REM_DATA_TOPIC => {
-            let data: REMData = serde_json::from_slice(msg.payload())
+            let data: RemData = serde_json::from_slice(msg.payload())
                 .map_err(|_| MQTTClientError::InvalidMessage)?;
 
             info!("ID: {}, Device ID: {}", data.id, data.device_id);
@@ -52,7 +52,7 @@ async fn handle_message(repo: &Arc<Mutex<REMRepo>>, msg: Message) -> Result<(), 
         }
 
         REM_STATUS_TOPIC => {
-            let status: REMStatus = match serde_json::from_slice(msg.payload()) {
+            let status: RemStatus = match serde_json::from_slice(msg.payload()) {
                 Ok(s) => s,
                 Err(e) => {
                     info!("{:?}", msg.payload());
@@ -77,7 +77,7 @@ async fn handle_message(repo: &Arc<Mutex<REMRepo>>, msg: Message) -> Result<(), 
     }
 }
 
-pub async fn mqtt_proc(cli: Arc<Mutex<AsyncClient>>, repo: Arc<Mutex<REMRepo>>) -> Result<()> {
+pub async fn mqtt_proc(cli: Arc<Mutex<AsyncClient>>, repo: Arc<Mutex<RemRepo>>) -> Result<()> {
     let mut cli_lock = cli.lock().await;
 
     // Get message stream before connecting.
