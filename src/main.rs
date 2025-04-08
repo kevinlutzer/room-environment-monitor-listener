@@ -4,9 +4,10 @@ pub mod mqtt;
 pub mod repo;
 pub mod schema;
 pub mod settings;
+pub mod topic;
 
 use api::server_proc;
-use mqtt::{client::mqtt_proc, topic::REM_LISTENER_DISCONNECT_TOPIC};
+use mqtt::{mqtt::mqtt_proc, topic::REM_LISTENER_DISCONNECT_TOPIC};
 use repo::client::REMRepo;
 use settings::Settings;
 

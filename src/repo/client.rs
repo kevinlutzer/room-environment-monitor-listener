@@ -7,8 +7,10 @@ use tokio::sync::Mutex;
 use crate::model::{REMData, REMStatus};
 use crate::schema::{
     rem_data::dsl::{
-        device_id as rem_data_device_id, humidity as rem_data_humidity, id as rem_data_id, pm10 as rem_data_pm10, pm1_0 as rem_data_pm1_0, pm2_5 as rem_data_pm2_5, pressure as rem_data_pressure,
-        rem_data, temperature as rem_data_temperature, voc_index as rem_data_voc_index,
+        device_id as rem_data_device_id, humidity as rem_data_humidity, id as rem_data_id,
+        pm10 as rem_data_pm10, pm1_0 as rem_data_pm1_0, pm2_5 as rem_data_pm2_5,
+        pressure as rem_data_pressure, rem_data, temperature as rem_data_temperature,
+        voc_index as rem_data_voc_index,
     },
     rem_status::dsl::{
         device_id as rem_status_device_id, id as rem_status_id, rem_status, up_time,
@@ -16,7 +18,8 @@ use crate::schema::{
 };
 
 use diesel::{
-    prelude::{Queryable, QueryableByName}, Selectable
+    prelude::{Queryable, QueryableByName},
+    Selectable,
 };
 
 use super::error::REMRepoError;
@@ -32,7 +35,6 @@ pub struct REMDataDB {
 
     // #[diesel(sql_type = Date)]
     // pub created_at: NaiveDateTime,
-
     pub pm2_5: f32,
     pub pm1_0: f32,
     pub pm10: f32,
@@ -68,8 +70,7 @@ impl REMRepo {
 
     pub async fn list_data(&self) -> Result<Vec<REMDataDB>, REMRepoError> {
         let mut mut_conn = self.db.lock().await;
-        let data = rem_data
-            .load::<REMDataDB>(&mut *mut_conn)?;
+        let data = rem_data.load::<REMDataDB>(&mut *mut_conn)?;
 
         Ok(data)
     }

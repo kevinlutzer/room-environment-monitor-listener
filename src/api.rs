@@ -12,11 +12,7 @@ use serde::Serialize;
 use tokio::{sync::Mutex, time::sleep};
 use tracing::{error, info};
 
-use crate::{
-    model::REMData,
-    repo::client::REMRepo,
-    settings::Settings,
-};
+use crate::{model::REMData, repo::client::REMRepo, settings::Settings};
 
 #[derive(Clone)]
 struct AppState {

@@ -1,5 +1,6 @@
 use diesel::{
-    prelude::{Queryable, QueryableByName}, Selectable
+    prelude::{Queryable, QueryableByName},
+    Selectable,
 };
 
 use serde::{Deserialize, Serialize};
