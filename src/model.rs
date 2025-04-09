@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
 /// RemStatus is the structure of the status that we receive from the REM device.
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, ToSchema)]
 pub struct RemStatus {
     pub id: String,
     #[serde(rename = "deviceId")]
@@ -11,7 +12,7 @@ pub struct RemStatus {
 }
 
 /// RemData is the structure of the data that we receive from the REM device.
-#[derive(Deserialize, Serialize, Debug)]
+#[derive(Deserialize, Serialize, Debug, ToSchema)]
 pub struct RemData {
     pub id: String,
 

@@ -98,6 +98,8 @@ pub async fn mqtt_proc(cli: Arc<Mutex<AsyncClient>>, repo: Arc<Mutex<RemRepo>>) 
     info!("Waiting for messages...");
     while let Some(msg_opt) = strm.next().await {
         if let Some(msg) = msg_opt {
+            info!("Received message: {:?}", msg.clone());
+
             // Just log an errors if we can't handle the message, the only real error error we care about is
             // a database error, not from a foreign key violation.
             if let Err(err) = handle_message(&repo, msg).await {

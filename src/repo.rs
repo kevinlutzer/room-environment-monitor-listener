@@ -3,6 +3,7 @@ use std::sync::Arc;
 use chrono::NaiveDateTime;
 use diesel::{insert_into, pg::PgConnection, prelude::*};
 use tokio::sync::Mutex;
+use tracing::info;
 
 use crate::{
     model::{RemData, RemStatus},
@@ -14,7 +15,8 @@ use crate::{
             voc_index as rem_data_voc_index,
         },
         rem_status::dsl::{
-            device_id as rem_status_device_id, id as rem_status_id, rem_status, up_time,
+            device_id as rem_status_device_id, id as rem_status_id, rem_status,
+            up_time as rem_status_up_time,
         },
     },
 };
@@ -37,10 +39,22 @@ pub enum RemRepoError {
 #[derive(Queryable, QueryableByName, Selectable, Debug)]
 #[diesel(table_name = crate::schema::rem_status)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct REMStatusDB {
+pub struct RemStatusDB {
     pub id: String,
     pub device_id: String,
+    pub up_time: i32,
+
     pub created_at: NaiveDateTime,
+}
+
+impl Into<RemStatus> for RemStatusDB {
+    fn into(self) -> RemStatus {
+        RemStatus {
+            id: self.id,
+            device_id: self.device_id,
+            up_time: self.up_time,
+        }
+    }
 }
 
 /// RemData is the structure of the data that we receive from the REM device.
@@ -60,6 +74,22 @@ pub struct RemDataDB {
     pub voc_index: f32,
 
     pub created_at: NaiveDateTime,
+}
+
+impl Into<RemData> for RemDataDB {
+    fn into(self) -> RemData {
+        RemData {
+            id: self.id,
+            device_id: self.device_id,
+            pm2_5: self.pm2_5,
+            pm1_0: self.pm1_0,
+            pm10: self.pm10,
+            temperature: self.temperature,
+            humidity: self.humidity,
+            pressure: self.pressure,
+            voc_index: self.voc_index,
+        }
+    }
 }
 
 fn repo_error_from_database(e: diesel::result::Error, key: String) -> RemRepoError {
@@ -85,10 +115,25 @@ impl RemRepo {
         RemRepo { db }
     }
 
-    pub async fn list_data(&self) -> Result<Vec<RemDataDB>, RemRepoError> {
+    pub async fn list_data(&self) -> Result<Vec<RemData>, RemRepoError> {
         let mut mut_conn = self.db.lock().await;
-        let data = rem_data.load::<RemDataDB>(&mut *mut_conn)?;
+        let dbs = rem_data.load::<RemDataDB>(&mut *mut_conn)?;
 
+        // Map the diesel definition into the global message definition
+        let data = dbs.into_iter().map(|d| d.into()).collect();
+
+        info!("{:?}", data);
+        Ok(data)
+    }
+
+    pub async fn list_status(&self) -> Result<Vec<RemStatus>, RemRepoError> {
+        let mut mut_conn = self.db.lock().await;
+        let dbs = rem_status.load::<RemStatusDB>(&mut *mut_conn)?;
+
+        // Map the diesel definition into the global message definition
+        let data = dbs.into_iter().map(|d| d.into()).collect();
+
+        info!("{:?}", data);
         Ok(data)
     }
 
@@ -124,7 +169,7 @@ impl RemRepo {
         let r = (
             rem_status_id.eq(status.id.clone()),
             rem_status_device_id.eq(status.device_id),
-            up_time.eq(status.up_time),
+            rem_status_up_time.eq(status.up_time),
         );
 
         // Lock on the Database

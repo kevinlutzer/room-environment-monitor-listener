@@ -23,6 +23,7 @@ use std::{
     sync::Arc,
     time::Duration,
 };
+use utoipa::openapi::info;
 
 use tokio::{join, sync::Mutex};
 use tracing::{debug, error, info};
@@ -38,7 +39,10 @@ const POSTGRES_CONNECTION_ERR: i32 = 5;
 #[tokio::main]
 async fn main() {
     // Load the configuration from the environment.
-    dotenv().unwrap();
+    if let Err(err) = dotenv() {
+        eprintln!("Error loading .env file: {}", err);
+        exit(2);
+    }
 
     // Setup tracing subscriber. This will configure the logger to read th
     // RUST_LOG environment variable.
@@ -92,6 +96,7 @@ async fn main() {
     // before restarting the entire service.
     let mut count = 0;
     let mqtt_client_lock = mqtt_client_mutex.lock().await;
+    info!("Connecting to the MQTT server ...");
     loop {
         if let Err(e) = mqtt_client_lock.connect(conn_opts.clone()).await {
             error!(
@@ -113,6 +118,10 @@ async fn main() {
         // Exit if we get no error
         break;
     }
+
+    // Release the lock now otherwise the other sub process like server and mqtt proc will not be able
+    // to get the lock on the mqtt client
+    drop(mqtt_client_lock);
 
     info!("Creating connection to the postgres client ...");
 

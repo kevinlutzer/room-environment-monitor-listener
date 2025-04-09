@@ -21,6 +21,9 @@ thiserror = "2.0.3"
 tokio = { version = "1.40.0", features = ["full"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
+utoipa = { version = "5.3.1", features = ["axum_extras"] }
+utoipa-axum = "0.2.0"
+utoipa-swagger-ui = "9.0.1"
 
 [build-dependencies]
 vergen = { version = "9.0.1", features = ["build", "cargo", "emit_and_set"] }
