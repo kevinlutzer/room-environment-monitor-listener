@@ -47,12 +47,12 @@ pub struct RemStatusDB {
     pub created_at: NaiveDateTime,
 }
 
-impl Into<RemStatus> for RemStatusDB {
-    fn into(self) -> RemStatus {
+impl From<RemStatusDB> for RemStatus {
+    fn from(val: RemStatusDB) -> Self {
         RemStatus {
-            id: self.id,
-            device_id: self.device_id,
-            up_time: self.up_time,
+            id: val.id,
+            device_id: val.device_id,
+            up_time: val.up_time,
         }
     }
 }
@@ -76,18 +76,18 @@ pub struct RemDataDB {
     pub created_at: NaiveDateTime,
 }
 
-impl Into<RemData> for RemDataDB {
-    fn into(self) -> RemData {
+impl From<RemDataDB> for RemData {
+    fn from(val: RemDataDB) -> Self {
         RemData {
-            id: self.id,
-            device_id: self.device_id,
-            pm2_5: self.pm2_5,
-            pm1_0: self.pm1_0,
-            pm10: self.pm10,
-            temperature: self.temperature,
-            humidity: self.humidity,
-            pressure: self.pressure,
-            voc_index: self.voc_index,
+            id: val.id,
+            device_id: val.device_id,
+            pm2_5: val.pm2_5,
+            pm1_0: val.pm1_0,
+            pm10: val.pm10,
+            temperature: val.temperature,
+            humidity: val.humidity,
+            pressure: val.pressure,
+            voc_index: val.voc_index,
         }
     }
 }

@@ -10,21 +10,15 @@ use crate::{
     repo::RemRepo,
     settings::Settings,
 };
-use axum::{
-    extract::State,
-    http::StatusCode,
-    response::IntoResponse,
-    routing::{get, post},
-    Json,
-};
+use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::get, Json};
 use diesel::{sql_query, PgConnection, RunQueryDsl};
 use paho_mqtt::AsyncClient;
 use serde::Serialize;
 use tokio::{sync::Mutex, time::sleep};
 use tracing::{error, info};
 
-use utoipa::{OpenApi, ToSchema};
-use utoipa_axum::{router::OpenApiRouter, routes};
+use utoipa::ToSchema;
+use utoipa_axum::router::OpenApiRouter;
 use utoipa_swagger_ui::SwaggerUi;
 
 #[derive(Clone)]
@@ -107,7 +101,7 @@ async fn list_data(
     State(app_state): State<AppState>,
 ) -> Result<Json<Vec<RemData>>, Json<ApiError>> {
     let repo = app_state.repo.lock().await;
-    repo.list_data().await.map(|op| Json(op)).map_err(|err| {
+    repo.list_data().await.map(Json).map_err(|err| {
         error!("Failed to {:?}", err.to_string());
         Json(ApiError {
             message: err.to_string(),
@@ -126,7 +120,7 @@ async fn list_status(
     State(app_state): State<AppState>,
 ) -> Result<Json<Vec<RemStatus>>, Json<ApiError>> {
     let repo = app_state.repo.lock().await;
-    repo.list_status().await.map(|op| Json(op)).map_err(|err| {
+    repo.list_status().await.map(Json).map_err(|err| {
         error!("Failed to {:?}", err.to_string());
         Json(ApiError {
             message: err.to_string(),
