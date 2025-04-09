@@ -8,7 +8,15 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.93"
 async-std = "1.13.0"
-axum = "0.7.7"
+
+tokio = { version = "1", features = ["full"] }
+tower = "0.5"
+
+axum = "0.8.0"
+utoipa = { version = "5.3.1", features = ["axum_extras"] }
+utoipa-axum = "0.2.0"
+utoipa-swagger-ui = { version = "9.0.1", features = ["axum"] }
+
 chrono = { version = "0.4.39", features = ["serde"] }
 diesel = { version = "2.2.4", features = ["postgres", "chrono"] }
 dotenv = "0.15.0"
@@ -18,12 +26,9 @@ paho-mqtt = "0.12"
 serde = { version = "1.0.210", features = ["derive"] }
 serde_json = "1.0.128"
 thiserror = "2.0.3"
-tokio = { version = "1.40.0", features = ["full"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
-utoipa = { version = "5.3.1", features = ["axum_extras"] }
-utoipa-axum = "0.2.0"
-utoipa-swagger-ui = "9.0.1"
+
 
 [build-dependencies]
 vergen = { version = "9.0.1", features = ["build", "cargo", "emit_and_set"] }

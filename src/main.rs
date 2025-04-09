@@ -23,7 +23,6 @@ use std::{
     sync::Arc,
     time::Duration,
 };
-use utoipa::openapi::info;
 
 use tokio::{join, sync::Mutex};
 use tracing::{debug, error, info};

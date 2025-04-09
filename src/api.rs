@@ -10,13 +10,22 @@ use crate::{
     repo::RemRepo,
     settings::Settings,
 };
-use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::get, Json};
+use axum::{
+    extract::State,
+    http::StatusCode,
+    response::IntoResponse,
+    routing::{get, post},
+    Json,
+};
 use diesel::{sql_query, PgConnection, RunQueryDsl};
 use paho_mqtt::AsyncClient;
 use serde::Serialize;
 use tokio::{sync::Mutex, time::sleep};
 use tracing::{error, info};
-use utoipa::ToSchema;
+
+use utoipa::{OpenApi, ToSchema};
+use utoipa_axum::{router::OpenApiRouter, routes};
+use utoipa_swagger_ui::SwaggerUi;
 
 #[derive(Clone)]
 struct AppState {
@@ -38,7 +47,7 @@ struct ApiError {
 ///
 /// This handler checks the health of the application by verifying that the MQTT client is connected
 /// to the broker and that the database can be queried.
-#[utoipa::path(get, path = "/v1/healthcheck", responses((status = OK, body = String)))]
+#[utoipa::path(post, path = "/healthcheck", responses((status = OK, body = String)))]
 async fn healthcheck_handler(State(app_state): State<AppState>) -> (StatusCode, &'static str) {
     let mqtt_client_lock = app_state.mqtt_client.lock().await;
     let mut db_lock = app_state.db.lock().await;
@@ -77,7 +86,7 @@ pub struct VersionResponse {
 /// Version
 ///
 /// Returns the version information of the application including a sematic version on a commit hash.
-#[utoipa::path(get, path = "/v1/version", responses((status = OK, body = VersionResponse)))]
+#[utoipa::path(get, path = "/version", responses((status = OK, body = VersionResponse)))]
 pub async fn version_handler() -> Json<VersionResponse> {
     Json(VersionResponse {
         version: env!("CARGO_PKG_VERSION").to_string(),
@@ -138,17 +147,27 @@ pub async fn server_proc(
     let addr = SocketAddr::new(IpAddr::V4(config.host), config.port);
     info!("Listening on {}", addr);
 
-    let app = axum::Router::new()
+    // TODO: bug in axum where if you have two routes with the same method, it fails
+    let (router, api) = OpenApiRouter::new()
+        // .routes(routes![
+        //     version_handler,
+        //     healthcheck_handler,
+        //     list_data,
+        //     list_status
+        // ])
         .route("/v1/version", get(version_handler))
         .route("/v1/healthcheck", get(healthcheck_handler))
         .route("/v1/rem/data/list", get(list_data))
         .route("/v1/rem/status/list", get(list_status))
-        .fallback(default_handler)
-        .with_state(AppState {
-            mqtt_client,
-            db,
-            repo,
-        });
+        .split_for_parts();
+
+    let router = router.merge(SwaggerUi::new("/swagger-ui").url("/api/openapi.json", api));
+
+    let app = router.fallback(default_handler).with_state(AppState {
+        mqtt_client,
+        db,
+        repo,
+    });
 
     loop {
         // TCP listener fails to be instantiated when we already are binding to that address or we run out of memory
