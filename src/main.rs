@@ -38,9 +38,9 @@ const POSTGRES_CONNECTION_ERR: i32 = 5;
 #[tokio::main]
 async fn main() {
     // Load the configuration from the environment.
+    // Warn if the .env file is not found. DO NOT EXIT WE MIGHT BE IN A CONTAINER
     if let Err(err) = dotenv() {
         eprintln!("Error loading .env file: {}", err);
-        exit(2);
     }
 
     // Setup tracing subscriber. This will configure the logger to read th

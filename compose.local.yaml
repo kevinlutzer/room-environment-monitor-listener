@@ -3,7 +3,7 @@ include:
 
 services:
   room-environment-monitor-listener:
-    build: .
+    build: kevinlutzer/room-environment-monitor-listener:local
     ports:
       - "8080:8080"
     depends_on:
