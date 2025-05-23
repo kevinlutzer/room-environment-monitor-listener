@@ -1,7 +1,7 @@
 FROM rust:1.87.0-bullseye
 
 # Setup workspace
-WORKDIR /app/room-environment-monitor-listener
+WORKDIR /usr/src/room-environment-monitor-listener
 COPY . .
 
 # Setup build dependencies
@@ -20,4 +20,4 @@ ENV MQTT_PORT=1883
 ENV HTTP_HOST=0.0.0.0
 ENV HTTP_PORT=8080
 
-CMD ["/app/room-environment-monitor-listener"]
+CMD ["room-environment-monitor-listener"]
