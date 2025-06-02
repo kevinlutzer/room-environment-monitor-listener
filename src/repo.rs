@@ -16,7 +16,7 @@ use crate::{
         },
         rem_status::dsl::{
             device_id as rem_status_device_id, id as rem_status_id, rem_status,
-            up_time as rem_status_up_time, rssi as rem_status_rssi,
+            rssi as rem_status_rssi, up_time as rem_status_up_time,
         },
     },
 };
@@ -49,7 +49,6 @@ pub struct RemStatusDB {
 
 impl From<RemStatusDB> for RemStatus {
     fn from(val: RemStatusDB) -> Self {
-
         // Normalize the rssi value to 0 if it is None
         let rssi = val.rssi.unwrap_or(100);
 
