@@ -43,10 +43,8 @@ pub struct RemStatusDB {
     pub id: String,
     pub device_id: String,
     pub up_time: i32,
-
-    pub rssi: Option<i32>,
-
     pub created_at: NaiveDateTime,
+    pub rssi: Option<i32>,
 }
 
 impl From<RemStatusDB> for RemStatus {
