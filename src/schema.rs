@@ -23,6 +23,7 @@ diesel::table! {
         device_id -> Varchar,
         up_time -> Int4,
         created_at -> Timestamp,
+        rssi -> Nullable<Int4>,
     }
 }
 

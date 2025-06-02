@@ -16,7 +16,7 @@ use crate::{
         },
         rem_status::dsl::{
             device_id as rem_status_device_id, id as rem_status_id, rem_status,
-            up_time as rem_status_up_time,
+            rssi as rem_status_rssi, up_time as rem_status_up_time,
         },
     },
 };
@@ -43,16 +43,20 @@ pub struct RemStatusDB {
     pub id: String,
     pub device_id: String,
     pub up_time: i32,
-
     pub created_at: NaiveDateTime,
+    pub rssi: Option<i32>,
 }
 
 impl From<RemStatusDB> for RemStatus {
     fn from(val: RemStatusDB) -> Self {
+        // Normalize the rssi value to 0 if it is None
+        let rssi = val.rssi.unwrap_or(100);
+
         RemStatus {
             id: val.id,
             device_id: val.device_id,
             up_time: val.up_time,
+            rssi,
         }
     }
 }
@@ -170,6 +174,7 @@ impl RemRepo {
             rem_status_id.eq(status.id.clone()),
             rem_status_device_id.eq(status.device_id),
             rem_status_up_time.eq(status.up_time),
+            rem_status_rssi.eq(status.rssi),
         );
 
         // Lock on the Database
