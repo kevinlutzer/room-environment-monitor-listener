@@ -23,7 +23,11 @@ diesel::table! {
         device_id -> Varchar,
         up_time -> Int4,
         created_at -> Timestamp,
+        rssi -> Nullable<Int4>,
     }
 }
 
-diesel::allow_tables_to_appear_in_same_query!(rem_data, rem_status,);
+diesel::allow_tables_to_appear_in_same_query!(
+    rem_data,
+    rem_status,
+);

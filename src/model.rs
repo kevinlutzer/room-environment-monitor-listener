@@ -8,6 +8,8 @@ pub struct RemStatus {
     pub device_id: String,
     #[serde(rename = "uptime")]
     pub up_time: i32,
+    #[serde(default)]
+    pub rssi: i32,
 }
 
 /// RemData is the structure of the data that we receive from the REM device.
