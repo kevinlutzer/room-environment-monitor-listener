@@ -3,7 +3,6 @@ use std::sync::Arc;
 use chrono::NaiveDateTime;
 use diesel::{insert_into, pg::PgConnection, prelude::*};
 use tokio::sync::Mutex;
-use tracing::info;
 
 use crate::{
     model::{RemData, RemStatus},
@@ -126,7 +125,6 @@ impl RemRepo {
         // Map the diesel definition into the global message definition
         let data = dbs.into_iter().map(|d| d.into()).collect();
 
-        info!("{:?}", data);
         Ok(data)
     }
 
@@ -137,7 +135,6 @@ impl RemRepo {
         // Map the diesel definition into the global message definition
         let data = dbs.into_iter().map(|d| d.into()).collect();
 
-        info!("{:?}", data);
         Ok(data)
     }
 
